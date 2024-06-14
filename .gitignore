@@ -79,6 +79,7 @@ fabric.properties
 *.dll
 *.so
 *.dylib
+harbor-img-clear
 
 # Test binary, built with `go test -c`
 *.test

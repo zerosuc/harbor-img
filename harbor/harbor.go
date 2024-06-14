@@ -13,6 +13,9 @@ import (
 	"strings"
 )
 
+// 最大一页100
+var pageSize = 100
+
 // Client
 type Client struct {
 	Client  *http.Client //http.Clinet类型，结构体嵌套
@@ -34,39 +37,6 @@ func NewClient(username, password, baseURL string) *Client {
 		BaseURL: baseURL,
 	}
 }
-
-// getProjectID . 根据projectName 获取projectID
-
-func (c *Client) GetProjectID(projectName string) (projectID int, err error) {
-	resp, err := c.Client.Get(c.BaseURL + "/api/v2.0/projects?name=" + projectName)
-	if err != nil {
-		return
-	}
-	if resp.StatusCode != 200 {
-		err = fmt.Errorf("response code is:%v", resp.StatusCode)
-		return
-	}
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return
-	}
-
-	var projects []model.Project
-	err = json.Unmarshal(body, &projects)
-	if err != nil {
-		return
-	}
-	for _, p := range projects { //返回的是模糊查询的结果，所以需要做个判断
-		if p.Name == projectName {
-			return p.ID, nil
-		}
-	}
-
-	return 0, errors.New("not found")
-}
-
 func (c *Client) GetAllProjectID() (allid []model.Project, err error) {
 	resp, err := c.Client.Get(c.BaseURL + "/api/v2.0/projects?page=1&page_size=100")
 	if err != nil {
@@ -94,8 +64,6 @@ func (c *Client) GetAllProjectID() (allid []model.Project, err error) {
 
 	return allid, nil
 }
-
-// func (c *Client) GetRepo(projectId int) (repoNames []string, err error)
 
 func (c *Client) GetRepoNames(projectName string) (repoNames []string, err error) {
 	url := fmt.Sprintf(c.BaseURL+"/api/v2.0/projects/%s/repositories", projectName)
@@ -149,7 +117,7 @@ func (c *Client) GetRepoTags(projectName, repo string) (tags model.Tags, err err
 	}
 
 	// 创建请求
-	url := fmt.Sprintf(c.BaseURL+"/api/v2.0/projects/%s/repositories/%s/artifacts", projectName, doubleEncodedRepoName)
+	url := fmt.Sprintf(c.BaseURL+"/api/v2.0/projects/%s/repositories/%s/artifacts?page=1&page_size=%d", projectName, doubleEncodedRepoName, pageSize)
 	klog.Infoln(url)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -170,12 +138,13 @@ func (c *Client) GetRepoTags(projectName, repo string) (tags model.Tags, err err
 		return
 	}
 
-	klog.Infoln("response body: ", string(body))
+	//klog.Infoln("response body: ", string(body))
 	// 解析 JSON 响应
 	err = json.Unmarshal(body, &tags)
 	if err != nil {
 		return
 	}
+	//klog.Infoln(tags)
 
 	// 排序标签
 	sort.Sort(tags)
@@ -206,45 +175,56 @@ func (c *HClient) getToken() (string, error) {
 	return tokenResponse.Token, nil
 }
 
-//// 获取tag列表
-//func (c *Client) GetRepoTags(repo string) (tags model.Tags, err error) {
-//	resp, err := c.Client.Get(c.BaseURL + "/api/v2.0/repositories/" + repo + "/tags")
-//	if err != nil {
-//		return
-//	}
-//	defer resp.Body.Close()
-//
-//	body, err := ioutil.ReadAll(resp.Body)
-//	if err != nil {
-//		return
-//	}
-//
-//	err = json.Unmarshal(body, &tags) //json转结构体
-//	if err != nil {
-//		return
-//	}
-//	// 排序
-//	sort.Sort(tags)
-//	if !sort.IsSorted(tags) {
-//		return nil, errors.New("tags not sorted")
-//	}
-//	return
-//}
+// DeleteRepoTag 在harbor 后台页面抓包可以得到
+// http://10.200.82.51/api/v2.0/projects/appsvc/repositories/vsap%252Ffront/artifacts/sha256:4d101e7450831885d1319f6687036e3529a9086785535bd547be84c50bfbb167
+func (c *Client) DeleteRepoTag(projectName, repo, reference string) (err error) {
+	requestURL := ""
+	if strings.Contains(repo, "/") {
+		// 去掉仓库名称中的项目名称和斜杠
+		trimmedRepoName := strings.TrimPrefix(repo, projectName+"/")
+		// 对处理后的仓库名称进行URL编码
+		encodedRepoName := url.PathEscape(trimmedRepoName)
+		// 对路径中的%符号进行二次编码
+		doubleEncodedRepoName := strings.ReplaceAll(encodedRepoName, "%", "%25")
+		klog.Infoln(doubleEncodedRepoName)
+		requestURL = fmt.Sprintf("%s/api/v2.0/projects/%s/repositories/%s/artifacts/%s", c.BaseURL, projectName, doubleEncodedRepoName, reference)
+	} else {
+		requestURL = fmt.Sprintf("%s/api/v2.0/projects/%s/repositories/%s/artifacts/%s", c.BaseURL, projectName, repo, reference)
+	}
+	// 构建请求URL
+	request, err := http.NewRequest("DELETE", requestURL, nil)
+	klog.Infoln(requestURL)
+	if err != nil {
+		return fmt.Errorf("error creating request: %v", err)
+	}
 
-// DeleteRepoTag delete tags with repo name and tag.
-func (c *Client) DeleteRepoTag(repo string, tag string) (err error) {
-	request, err := http.NewRequest("DELETE", c.BaseURL+"/api/v2.0/repositories/"+repo+"/tags/"+tag, nil)
+	client := &HClient{
+		BaseURL:  c.BaseURL,
+		Username: "admin",
+		Password: "Harbor12345",
+		Client:   &http.Client{},
+	}
+	// 获取 Token
+	token, err := client.getToken()
 	if err != nil {
 		return
 	}
+	request.Header.Set("Authorization", "Bearer "+token)
+	// 设置请求头
+	request.Header.Set("accept", "application/json")
+	//request.Header.Set("authorization", "Bearer "+c.Token)
+
+	// 执行请求
 	resp, err := c.Client.Do(request)
 	if err != nil {
-		return
+		return fmt.Errorf("error making request: %v", err)
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != 200 {
-		err = fmt.Errorf("resp code=%v", resp.StatusCode)
-		return
+
+	// 检查响应状态码
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("unexpected response code: %v", resp.StatusCode)
 	}
-	return
+
+	return nil
 }

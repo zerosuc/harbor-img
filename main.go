@@ -1,9 +1,8 @@
 package main
 
 import (
-	"log"
-
 	"harbor-img-clear/cmd"
+	"log"
 )
 
 func main() {
@@ -11,5 +10,4 @@ func main() {
 	if err := newClean.Execute(); err != nil {
 		log.Fatal(err)
 	}
-
 }

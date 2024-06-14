@@ -1,0 +1,6 @@
+harbor:
+  url: "http://10.200.82.51"
+  username: "admin"
+  password: "Harbor12345"
+  project: "k8s"
+  num: 30 # 需要保留最新的tag数
