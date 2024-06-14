@@ -57,11 +57,12 @@ func Clean(url, user, password, projectName string, keepNum int) (err error) {
 	if projectName == "all" {
 		allid, _ := harborClient.GetAllProjectID()
 		//klog.Infoln(allid)
-		for _, id := range allid {
-			klog.Infoln(id)
-			deleteTagByID(harborClient, projectName, keepNum)
+		for _, item := range allid {
+			klog.Infoln("==========>", item.Name)
+			deleteTagByID(harborClient, item.Name, keepNum)
 		}
 	} else {
+		klog.Infoln("===========>", projectName)
 		deleteTagByID(harborClient, projectName, keepNum)
 	}
 	return nil

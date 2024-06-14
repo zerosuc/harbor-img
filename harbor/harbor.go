@@ -66,7 +66,7 @@ func (c *Client) GetAllProjectID() (allid []model.Project, err error) {
 }
 
 func (c *Client) GetRepoNames(projectName string) (repoNames []string, err error) {
-	url := fmt.Sprintf(c.BaseURL+"/api/v2.0/projects/%s/repositories", projectName)
+	url := fmt.Sprintf(c.BaseURL+"/api/v2.0/projects/%s/repositories?page=1&page_size=100", projectName)
 	resp, err := c.Client.Get(url)
 	if err != nil {
 		return
@@ -115,37 +115,41 @@ func (c *Client) GetRepoTags(projectName, repo string) (tags model.Tags, err err
 	if err != nil {
 		return
 	}
+	page := 1
+	for {
+		// 创建请求
+		var mid model.Tags
+		url := fmt.Sprintf(c.BaseURL+"/api/v2.0/projects/%s/repositories/%s/artifacts?page=%d&page_size=%d", projectName, doubleEncodedRepoName, page, pageSize)
+		klog.Infoln(url)
+		req, err := http.NewRequest("GET", url, nil)
+		if err != nil {
+			continue
+		}
+		req.Header.Set("Authorization", "Bearer "+token)
 
-	// 创建请求
-	url := fmt.Sprintf(c.BaseURL+"/api/v2.0/projects/%s/repositories/%s/artifacts?page=1&page_size=%d", projectName, doubleEncodedRepoName, pageSize)
-	klog.Infoln(url)
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return
+		// 发送请求
+		resp, err := c.Client.Do(req)
+		if err != nil {
+			continue
+		}
+		defer resp.Body.Close()
+
+		// 读取响应体
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			continue
+		}
+		//klog.Infoln("response body: ", string(body))
+		err = json.Unmarshal(body, &mid)
+		if err != nil {
+			continue
+		}
+		if len(mid) == 0 {
+			break
+		}
+		tags = append(tags, mid...)
+		page++
 	}
-	req.Header.Set("Authorization", "Bearer "+token)
-
-	// 发送请求
-	resp, err := c.Client.Do(req)
-	if err != nil {
-		return
-	}
-	defer resp.Body.Close()
-
-	// 读取响应体
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return
-	}
-
-	//klog.Infoln("response body: ", string(body))
-	// 解析 JSON 响应
-	err = json.Unmarshal(body, &tags)
-	if err != nil {
-		return
-	}
-	//klog.Infoln(tags)
-
 	// 排序标签
 	sort.Sort(tags)
 	if !sort.IsSorted(tags) {

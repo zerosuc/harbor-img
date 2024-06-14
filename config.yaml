@@ -1,6 +1,6 @@
 harbor:
-  url: "http://10.200.82.51"
+  url: "http://10.200.82.51" #要清理的镜像的地址
   username: "admin"
   password: "Harbor12345"
-  project: "k8s"
-  num: 30 # 需要保留最新的tag数
+  project: "all" #all表示清理所有的projects
+  num: 490 # 需要保留最新的tag数
