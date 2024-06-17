@@ -20,7 +20,7 @@ func NewHarborCmd() *cobra.Command {
 		Example: "./harbor-img clear --address http://10.200.82.51  --user admin --password Harbor12345 --project appsvc  --keepNum 30",
 		Run: func(cmd *cobra.Command, args []string) {
 			if vers {
-				fmt.Println(version.FullVersion())
+				fmt.Print(version.FullVersion())
 			} else {
 				cmd.Help()
 			}

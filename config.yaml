@@ -3,4 +3,4 @@ harbor:
   username: "admin"
   password: "Harbor12345"
   project: "all" #all表示清理所有的projects
-  num: 480 # 需要保留最新的tag数
+  num: 470 # 需要保留最新的tag数
