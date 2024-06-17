@@ -1,4 +1,4 @@
-module harbor-img-clear
+module harbor-img
 
 go 1.15
 

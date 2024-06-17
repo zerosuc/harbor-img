@@ -1,13 +1,13 @@
 package main
 
 import (
-	"harbor-img-clear/cmd"
+	"harbor-img/cmd"
 	"log"
 )
 
 func main() {
-	newClean := cmd.NewHarborCleanCommand()
-	if err := newClean.Execute(); err != nil {
+	app := cmd.NewHarborCmd()
+	if err := app.Execute(); err != nil {
 		log.Fatal(err)
 	}
 }

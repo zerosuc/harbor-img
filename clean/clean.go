@@ -2,10 +2,11 @@ package clean
 
 import (
 	"fmt"
-	"k8s.io/klog"
 	"sort"
 
-	"harbor-img-clear/harbor"
+	"k8s.io/klog"
+
+	"harbor-img/harbor"
 )
 
 var (
