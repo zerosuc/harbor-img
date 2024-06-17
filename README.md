@@ -1,8 +1,7 @@
 ## harbor rest api v2.x img-clear
 
-
-
 ### 0. 前置
+
 ```
 ➜  harbor-clean git:(master) ✗ make build
 go build -ldflags "-X 'harbor-img/version.GIT_TAG=v0.1' -X 'harbor-img/version.GIT_COMMIT=8d3157dbbb3dde6121aeb47437aa579e335c5852' -X 'harbor-img/version.GIT_BRANCH=master' -X 'harbor-img/version.BUILD_TIME=2024-06-17T12:00:07+0800' -X 'harbor-img/version.GO_VERSION=go version go1.21.4 darwin/amd64'" -o harbor-img main.go
@@ -36,6 +35,7 @@ Use "harbor-img [command] --help" for more information about a command.
 ```
 
 ### 1. 配置 config.yaml文件
+
 ```shell
 harbor:
   url: "http://10.200.82.51"
@@ -44,11 +44,21 @@ harbor:
   project: "isap" 
   num: 30 # 需要保留最新的tag数
 ```
+
 ### 2. 执行
+
 ```
-    
+➜  harbor-clean git:(master) ✗ ./harbor-img clear
+I0617 12:04:25.321389   58998 clean.go:62] ==========> appsvc
+I0617 12:04:25.364668   58998 harbor.go:124] http://10.200.82.51/api/v2.0/projects/appsvc/repositories/vsap%252Fserver/artifacts?page=1&page_size=100
+I0617 12:04:25.398272   58998 harbor.go:124] http://10.200.82.51/api/v2.0/projects/appsvc/repositories/vsap%252Fserver/artifacts?page=2&page_size=100
+当前tag: 30  ，保留tag: 470  of appsvc/vsap/server                       ,无需删除!
+I0617 12:04:25.435185   58998 harbor.go:124] shttp://10.200.82.51/api/v2.0/projects/appsvc/repositories/vsap%252Ffront/artifacts?page=1&page_size=100
+I0617 12:04:25.460948   58998 harbor.go:124] http://10.200.82.51/api/v2.0/projects/appsvc/repositories/vsap%252Ffront/artifacts?page=2&page_size=100
+当前tag: 28  ，保留tag: 470  of appsvc/vsap/front                        ,无需删除!  
 ```
 
 ### 3. 在harbor后台页面立即 清理或者设置定时任务 清理
-    说明： 每个project 其实可以自己设置策略；比如：保留最近推送的40个 artifacts基于条件tags匹配**基于条件 无 Tag
-    但是项目多了以后麻烦；所以可以设置all统一脚本跑！
+
+说明： 每个project 其实可以自己设置策略；比如：保留最近推送的40个 artifacts基于条件tags匹配**基于条件 无 Tag
+但是项目多了以后麻烦；所以可以设置all统一脚本跑！
